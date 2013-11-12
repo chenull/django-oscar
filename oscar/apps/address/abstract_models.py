@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _, pgettext_lazy
 from django.core import exceptions
 
 from oscar.core.compat import AUTH_USER_MODEL
-from oscar.models.fields import UppercaseCharField
+from oscar.models.fields import UppercaseCharField, PhoneNumberField
 
 
 class AbstractAddress(models.Model):
@@ -268,7 +268,7 @@ class AbstractAddress(models.Model):
             country_code = self.country.iso_3166_1_a2
             regex = self.POSTCODES_REGEX.get(country_code, None)
             if regex:
-                msg = ("Addresses in %(country)s require a postcode") % {
+                msg = ("Addresses in %(country)s require a valid postcode") % {
                     'country': self.country}
                 raise exceptions.ValidationError(msg)
 
@@ -281,10 +281,11 @@ class AbstractAddress(models.Model):
             # Validate postcode against regext for the country if available
             if regex and not re.match(regex, postcode):
                 msg = _("The postcode '%(postcode)s' is not valid "
-                        "for the %(country)s") % {
+                        "for %(country)s") % {
                             'postcode': self.postcode,
                             'country': self.country}
-                raise exceptions.ValidationError(msg)
+                raise exceptions.ValidationError(
+                    {'postcode': msg})
 
     def _update_search_text(self):
         search_fields = filter(
@@ -405,6 +406,13 @@ class AbstractCountry(models.Model):
         return self.printable_name or self.name
 
     @property
+    def code(self):
+        """
+        Shorthand for the ISO 3166 code
+        """
+        return self.iso_3166_1_a2
+
+    @property
     def numeric_code(self):
         return u"%.03d" % self.iso_3166_1_numeric
 
@@ -416,8 +424,8 @@ class AbstractShippingAddress(AbstractAddress):
     A shipping address should not be edited once the order has been placed -
     it should be read-only after that.
     """
-    phone_number = models.CharField(
-        _("Phone number"), max_length=32, blank=True, null=True,
+    phone_number = PhoneNumberField(
+        _("Phone number"), blank=True,
         help_text=_("In case we need to call you about your order"))
     notes = models.TextField(
         blank=True, null=True,

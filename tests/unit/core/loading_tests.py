@@ -6,21 +6,8 @@ from django.test.utils import override_settings
 import oscar
 from tests import temporary_python_path
 from oscar.core.loading import (
-    import_module, AppNotFoundError,
+    AppNotFoundError,
     get_classes, get_class, ClassNotFoundError)
-
-
-class TestImportModule(TestCase):
-    """
-    oscar.core.loading.import_module
-    """
-
-    def test_imports_a_class_correctly(self):
-        module = import_module('analytics.models', ['ProductRecord'])
-        self.assertEqual('oscar.apps.analytics.models', module.__name__)
-
-    def test_raises_exception_for_unknown_app(self):
-        self.assertRaises(AppNotFoundError, import_module, 'banana', ['skin'])
 
 
 class TestClassLoading(TestCase):
@@ -48,6 +35,13 @@ class TestClassLoading(TestCase):
     def test_raise_exception_when_bad_classname_used(self):
         with self.assertRaises(ClassNotFoundError):
             get_class('catalogue.models', 'Monkey')
+
+    def test_raise_importerror_if_app_raises_importerror(self):
+        installed_apps = list(settings.INSTALLED_APPS)
+        installed_apps.insert(0, 'tests._site.import_error_app.catalogue')
+        with override_settings(INSTALLED_APPS=installed_apps):
+            with self.assertRaises(ImportError):
+                get_class('catalogue.app', 'CatalogueApplication')
 
 
 class ClassLoadingWithLocalOverrideTests(TestCase):
@@ -119,4 +113,3 @@ class TestGetCoreAppsFunction(TestCase):
         self.assertTrue('apps.dashboard.catalogue' in apps)
         self.assertTrue('oscar.apps.dashboard.catalogue' not in apps)
         self.assertTrue('oscar.apps.catalogue' in apps)
-

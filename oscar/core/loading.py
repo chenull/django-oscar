@@ -1,4 +1,5 @@
-from imp import new_module
+import sys
+import traceback
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -52,6 +53,23 @@ def get_classes(module_label, classnames):
     try:
         imported_local_module = __import__(local_app, fromlist=classnames)
     except ImportError:
+        # There are 2 reasons why there is ImportError:
+        #  1. local_app does not exist
+        #  2. local_app exists but is corrupted (ImportError inside of the app)
+        #
+        # Obviously, for the reason #1 we want to fail back to use Oscar app.
+        # For the reason #2 we want to propagate error (the dev obviously wants
+        # to override app and not use Oscar app)
+        #
+        # ImportError does not provide easy way to distinguish those two cases.
+        # Fortunatelly, the traceback of the ImportError starts at __import__
+        # statement. If the traceback has more than one frame, it means that
+        # application was found and ImportError originates within the local app
+        __, __, exc_traceback = sys.exc_info()
+        frames = traceback.extract_tb(exc_traceback)
+        if len(frames) > 1:
+            raise
+
         # Module not in local app
         imported_local_module = {}
     oscar_app = "oscar.apps.%s" % module_label
@@ -83,21 +101,6 @@ def _get_app_module_path(module_label):
         if installed_app.endswith(app_name):
             return installed_app
     return None
-
-
-def import_module(module_label, classes, namespace=None):
-    """
-    This is the deprecated old way of loading modules
-    """
-    klasses = get_classes(module_label, classes)
-    if namespace:
-        for classname, klass in zip(classes, klasses):
-            namespace[classname] = klass
-    else:
-        module = new_module("oscar.apps.%s" % module_label)
-        for classname, klass in zip(classes, klasses):
-            setattr(module, classname, klass)
-        return module
 
 
 def get_profile_class():

@@ -1,4 +1,4 @@
-.. image:: http://img692.imageshack.us/img692/6498/logovf.png
+.. figure:: ../images/logos/oscar.png
 
 ===================================
 Domain-driven e-commerce for Django
@@ -94,9 +94,9 @@ All you need to start developing an Oscar project.
    ref/apps/index
    ref/settings
    ref/signals
-   ref/upgrading
-   ref/deploying
+   topics/deploying
    topics/translation
+   topics/upgrading
 
 The Oscar open-source project
 =============================

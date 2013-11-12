@@ -7,8 +7,8 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.db.models import get_model
 from django.utils.translation import ugettext as _
-from django.views.generic import DetailView, TemplateView, FormView, \
-                                 DeleteView, UpdateView, CreateView
+from django.views.generic import (DetailView, TemplateView, FormView,
+                                  DeleteView, UpdateView)
 
 from oscar.apps.shipping.methods import NoShippingRequired
 from oscar.core.loading import get_class, get_classes
@@ -143,7 +143,9 @@ class ShippingAddressView(CheckoutSessionMixin, FormView):
         return kwargs
 
     def get_available_addresses(self):
-        return UserAddress._default_manager.filter(user=self.request.user).order_by('-is_default_for_shipping')
+        return self.request.user.addresses.filter(
+            country__is_shipping_country=True).order_by(
+                '-is_default_for_shipping')
 
     def post(self, request, *args, **kwargs):
         # Check if a shipping address was selected directly (eg no form was
@@ -395,23 +397,30 @@ class PaymentDetailsView(OrderPlacementMixin, TemplateView):
                 "You need to add some items to your basket to checkout"))
             return HttpResponseRedirect(reverse('basket:summary'))
 
-        # Check that shipping address has been completed
-        shipping_required = self.request.basket.is_shipping_required()
-        if shipping_required and not self.checkout_session.is_shipping_address_set():
-            messages.error(self.request, _("Please choose a shipping address"))
-            return HttpResponseRedirect(reverse('checkout:shipping-address'))
+        if self.request.basket.is_shipping_required():
+            shipping_address = self.get_shipping_address(
+                self.request.basket)
+            shipping_method = self.get_shipping_method(
+                self.request.basket, shipping_address)
+            # Check that shipping address has been completed
+            if not shipping_address:
+                messages.error(
+                    self.request, _("Please choose a shipping address"))
+                return HttpResponseRedirect(
+                    reverse('checkout:shipping-address'))
 
-        # Check that shipping method has been set
-        if shipping_required and not self.checkout_session.is_shipping_method_set(
-                self.request.basket):
-            messages.error(self.request, _("Please choose a shipping method"))
-            return HttpResponseRedirect(reverse('checkout:shipping-method'))
+            # Check that shipping method has been set
+            if not shipping_method:
+                messages.error(
+                    self.request, _("Please choose a shipping method"))
+                return HttpResponseRedirect(
+                    reverse('checkout:shipping-method'))
 
     def build_submission(self, **kwargs):
         """
         Return a dict of data to submitted to pay for, and create an order
         """
-        basket = self.request.basket
+        basket = kwargs.get('basket', self.request.basket)
         shipping_address = self.get_shipping_address(basket)
         shipping_method = self.get_shipping_method(
             basket, shipping_address)

@@ -4,7 +4,7 @@ from django.db.models import get_model
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils.translation import ugettext_lazy as _
 
-from oscar.templatetags.currency_filters import render_currency as currency
+from oscar.templatetags.currency_filters import currency
 
 Line = get_model('basket', 'line')
 Basket = get_model('basket', 'basket')
@@ -16,8 +16,8 @@ class BasketLineForm(forms.ModelForm):
         initial=False, required=False, label=_('Save for Later'))
 
     def __init__(self, strategy, *args, **kwargs):
-        self.strategy = strategy
         super(BasketLineForm, self).__init__(*args, **kwargs)
+        self.instance.strategy = strategy
 
     def clean_quantity(self):
         qty = self.cleaned_data['quantity']
@@ -26,14 +26,12 @@ class BasketLineForm(forms.ModelForm):
         return qty
 
     def check_max_allowed_quantity(self, qty):
-        self.instance.basket.strategy = self.strategy
         is_allowed, reason = self.instance.basket.is_quantity_allowed(qty)
         if not is_allowed:
             raise forms.ValidationError(reason)
 
     def check_permission(self, qty):
-        result = self.strategy.fetch(self.instance.product)
-        is_available, reason = result.availability.is_purchase_permitted(
+        is_available, reason = self.instance.stockinfo.availability.is_purchase_permitted(
             quantity=qty)
         if not is_available:
             raise forms.ValidationError(reason)

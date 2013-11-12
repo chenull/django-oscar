@@ -204,6 +204,10 @@ class AbstractOrder(models.Model):
         return num_items
 
     @property
+    def shipping_tax(self):
+        return self.shipping_incl_tax - self.shipping_excl_tax
+
+    @property
     def shipping_status(self):
         events = self.shipping_events.all()
         if not len(events):
@@ -253,9 +257,6 @@ class AbstractOrder(models.Model):
     class Meta:
         abstract = True
         ordering = ['-date_placed',]
-        permissions = (
-            ("can_view", _("Can view orders (eg for reporting)")),
-        )
         verbose_name = _("Order")
         verbose_name_plural = _("Orders")
 

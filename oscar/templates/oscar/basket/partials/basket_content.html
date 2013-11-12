@@ -28,8 +28,9 @@
         <div class="basket-title hidden-phone">
             <div class="row-fluid">
                 <h4 class="span6">{% trans "Items to buy now" %}</h4>
-                <h4 class="span4">{% trans "Quantity" %}</h4>
+                <h4 class="span2">{% trans "Quantity" %}</h4>
                 <h4 class="span2 align-right">{% trans "Price" %}</h4>
+                <h4 class="span2 align-right">{% trans "Total" %}</h4>
             </div>
         </div>
     {% endblock %}
@@ -46,19 +47,17 @@
                         <div class="row-fluid">
                             <div class="span2">
                                 {{ form.id }}
-                                <div class="image_container">
-                                    {% with image=product.primary_image %}
-                                        {% thumbnail image.original "100x100" upscale=False as thumb %}
-                                        <a href="{{ product.get_absolute_url }}"><img class="thumbnail" src="{{ thumb.url }}" alt="{{ product.get_title }}"/></a>
-                                        {% endthumbnail %}
-                                    {% endwith %}
-                                </div>
+                                {% with image=product.primary_image %}
+                                    {% thumbnail image.original "100x100" upscale=False as thumb %}
+                                    <a href="{{ product.get_absolute_url }}"><img class="thumbnail" src="{{ thumb.url }}" alt="{{ product.get_title }}"/></a>
+                                    {% endthumbnail %}
+                                {% endwith %}
                             </div>
                             <div class="span4">
                                 <h4><a href="{{ product.get_absolute_url }}">{{ line.description }}</a></h4>
                                 <p class="availability {{ session.availability.code }}">{{ session.availability.message }}</p>
                             </div>
-                            <div class="span4">
+                            <div class="span2">
                                 <div class="checkout-quantity control-group {% if form.errors %}error{% endif %}">
                                     {{ form.quantity }}
                                     <button class="btn" type="submit">{% trans "Update" %}</button>
@@ -86,6 +85,15 @@
                                     {% endif %}
                                 </p>
                             </div>
+                            <div class="span2">
+                                <p class="price_color align-right">
+                                    {% if basket.is_tax_known %}
+                                        {{ line.line_price_incl_tax|currency:basket.currency }}
+                                    {% else %}
+                                        {{ line.line_price_excl_tax|currency:basket.currency }}
+                                    {% endif %}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 {% endwith %}
@@ -103,13 +111,11 @@
 
                 <div id="voucher_form_container" style="display:none">
                     <h4>{% trans "Voucher code" %}</h4>
-                    <form action="{% url 'basket:vouchers-add' %}" method="post" class="form-horizontal">
+                    <form action="{% url 'basket:vouchers-add' %}" method="post">
                         {% csrf_token %}
                         {% include "partials/form_fields.html" with form=voucher_form %}
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-info">{% trans "Add voucher" %}</button>
-                            {% trans "or" %} <a href="#" id="voucher_form_cancel">{% trans "cancel" %}</a>
-                        </div>
+                        <button type="submit" class="btn btn-info">{% trans "Add voucher" %}</button>
+                        {% trans "or" %} <a href="#" id="voucher_form_cancel">{% trans "cancel" %}</a>
                     </form>
                 </div>
             </div>
@@ -165,13 +171,11 @@
                         <div class="row-fluid">
                             <div class="span2">
                                 {{ form.id }}
-                                <div class="image_container">
-                                    {% with image=form.instance.product.primary_image %}
-                                        {% thumbnail image.original "100x100" upscale=False as thumb %}
-                                        <a href="{{ form.instance.product.get_absolute_url }}"><img class="thumbnail" src="{% static thumb.url %}" alt="{{ form.instance.product.get_title }}"></a>
-                                        {% endthumbnail %}
-                                    {% endwith %}
-                                </div>
+                                {% with image=form.instance.product.primary_image %}
+                                    {% thumbnail image.original "100x100" upscale=False as thumb %}
+                                    <a href="{{ form.instance.product.get_absolute_url }}"><img class="thumbnail" src="{% static thumb.url %}" alt="{{ form.instance.product.get_title }}"></a>
+                                    {% endthumbnail %}
+                                {% endwith %}
                             </div>
                             <div class="span6">
                                 <h4><a href="{{ form.instance.product.get_absolute_url }}">{{ form.instance.description }}</a></h4>
